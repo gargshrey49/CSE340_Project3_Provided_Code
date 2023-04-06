@@ -24,7 +24,6 @@ bool checkToken(vector<string>, string);
 struct InstructionNode * parse_generate_intermediate_representation()
 {
     vector<string> indexArray;
-    int countInstruction = 0;
     int count = 0;
     bool firstBrace = false;
     firstT = lexer.GetToken();
@@ -43,31 +42,25 @@ struct InstructionNode * parse_generate_intermediate_representation()
         //if you have a character set mem value to 0 and proceed
         if(token.token_type == ID)
         {
-            mem[next_available] = 0;
             auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
             if(it == indexArray.end())
             {
+                mem[next_available] = 0;
                 indexArray.push_back(token.lexeme);
                 next_available++;
             }
         }
-            //else if add a constant value to mem
+        //else if add a constant value to mem
         else if(token.token_type == NUM)
         {
-            mem[next_available] = stoi(token.lexeme);
             auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
             if(it == indexArray.end())
             {
+                mem[next_available] = stoi(token.lexeme);
                 indexArray.push_back(token.lexeme);
                 next_available++;
             }
         }
-
-        else if (token.token_type == SEMICOLON)
-        {
-            countInstruction++;
-        }
-
         else if(token.token_type == LBRACE)
         {
             firstBrace = true;
@@ -84,14 +77,163 @@ struct InstructionNode * parse_generate_intermediate_representation()
         }
         count++;
     }
-
     count++;
-
     while(lexer.peek(count).token_type != END_OF_FILE)
     {
         Token token = lexer.peek(count);
         inputs.push_back(stoi(token.lexeme));
         count++;
     }
+    count = 1, firstBrace = false;
+    //Iterate through the program to create and assign the instruction nodes
+    while(lexer.peek(count).token_type != END_OF_FILE)
+    {
+        Token token = lexer.peek(count);
+        if(token.token_type == LBRACE)
+        {
+            firstBrace = true;
+            end.push("{");
+            count++;
+            break;
+        }
+        else
+        {
+            count++;
+        }
+    }
+    struct InstructionNode *  instruction = new InstructionNode;
+    struct InstructionNode *  head = instruction;
+    int checkFirstInstruction = 0;
+    while(!end.empty())
+    {
+        Token token = lexer.peek(count);
+        struct InstructionNode *  temp = new InstructionNode;
+        if(token.token_type == INPUT)
+        {
+            temp->type = IN;
+            token = lexer.peek(++count);
+            auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+            if(it != indexArray.end())
+            {
+                temp->input_inst.var_index = it - indexArray.begin();
+                if(checkFirstInstruction == 0)
+                {
+                    checkFirstInstruction++;
+                    instruction = temp;
+                }
+                else
+                {
+                    instruction->next = temp;
+                    instruction = instruction->next;
+                }
+                count = count + 2;
+            }
+        }
+        else if(token.token_type == OUTPUT)
+        {
+            temp->type = OUT;
+            token = lexer.peek(++count);
+            auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+            if(it != indexArray.end())
+            {
+                temp->input_inst.var_index = it - indexArray.begin();
+                instruction->next = temp;
+                instruction = instruction->next;
+                count = count + 2;
+            }
+        }
+        else if(token.token_type == ID)
+        {
+            temp->type = ASSIGN;
+            token = lexer.peek(count);
+            auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+            if(it != indexArray.end())
+            {
+                temp->assign_inst.left_hand_side_index = it-indexArray.begin();// c = 10
+                count = count + 2;
+                token = lexer.peek(count);
+                if(token.token_type == NUM)
+                {
+                    temp->assign_inst.op = OPERATOR_NONE;
+                    auto it1 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+                    if(it1 != indexArray.end())
+                    {
+                        temp->assign_inst.operand1_index = it1 - indexArray.begin();
+                        instruction->next = temp;
+                        instruction = instruction->next;
+                        count = count + 2;
+                    }
+                }
+                else
+                {
+                    auto it3 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+                    if(it3 != indexArray.end())
+                    {
+                        temp->assign_inst.operand1_index = it3-indexArray.end();
+                        count++;
+                    }
+                    if(lexer.peek(count).token_type == OPERATOR_PLUS)
+                    {
+                        temp->assign_inst.op = OPERATOR_PLUS;
+                        count++;
+                    }
+                    else if(lexer.peek(count).token_type == OPERATOR_MINUS)
+                    {
+                        temp->assign_inst.op = OPERATOR_MINUS;
+                        count++;
+                    }
+                    else if(lexer.peek(count).token_type == OPERATOR_MULT)
+                    {
+                        temp->assign_inst.op = OPERATOR_MULT;
+                        count++;
+                    }
+                    else if(lexer.peek(count).token_type == OPERATOR_DIV)
+                    {
+                        temp->assign_inst.op = OPERATOR_DIV;
+                        count++;
+                    }
+                    token = lexer.peek(count);
+                    auto it2 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+                    if(it2 != indexArray.end())
+                    {
+                        temp->assign_inst.operand2_index = it2-indexArray.begin();
+                        instruction->next = temp;
+                        instruction = instruction->next;
+                        count += 2;
+                    }
+                }
+            }
+        }
+        else if(token.token_type == IF)
+        {
 
+        }
+        else if(token.token_type == WHILE)
+        {
+
+        }
+        else if(token.token_type == FOR)
+        {
+
+        }
+        else if(token.token_type == SWITCH)
+        {
+
+        }
+        else if(token.token_type == LBRACE)
+        {
+            end.push("{");
+            count++;
+        }
+        else if(token.token_type == RBRACE)
+        {
+            end.pop();
+            count++;
+        }
+        else
+        {
+
+        }
+    }
+    return head;
 }
