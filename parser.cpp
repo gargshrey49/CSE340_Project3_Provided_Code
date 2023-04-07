@@ -102,7 +102,6 @@ struct InstructionNode * parse_generate_intermediate_representation()
         }
     }
     struct InstructionNode *  instruction = new InstructionNode;
-    struct InstructionNode *  head = instruction;
     int checkFirstInstruction = 0;
     while(!end.empty())
     {
@@ -123,8 +122,12 @@ struct InstructionNode * parse_generate_intermediate_representation()
                 }
                 else
                 {
-                    instruction->next = temp;
-                    instruction = instruction->next;
+                    struct InstructionNode *  temp1 = instruction;
+                    while(temp1->next != NULL)
+                    {
+                        temp1 = temp1->next;
+                    }
+                    temp1->next = temp;
                 }
                 count = count + 2;
             }
@@ -137,8 +140,12 @@ struct InstructionNode * parse_generate_intermediate_representation()
             if(it != indexArray.end())
             {
                 temp->input_inst.var_index = it - indexArray.begin();
-                instruction->next = temp;
-                instruction = instruction->next;
+                struct InstructionNode *  temp1 = instruction;
+                while(temp1->next != NULL)
+                {
+                    temp1 = temp1->next;
+                }
+                temp1->next = temp;
                 count = count + 2;
             }
         }
@@ -146,61 +153,86 @@ struct InstructionNode * parse_generate_intermediate_representation()
         {
             temp->type = ASSIGN;
             token = lexer.peek(count);
-            auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
-            if(it != indexArray.end())
+            auto it0 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+            if(it0 != indexArray.end())
             {
-                temp->assign_inst.left_hand_side_index = it-indexArray.begin();// c = 10
+                temp->assign_inst.left_hand_side_index = it0 - indexArray.begin();// c = 10
                 count = count + 2;
-                token = lexer.peek(count);
-                if(token.token_type == NUM)
+            }
+            token = lexer.peek(count);
+            if(token.token_type == NUM)
+            {
+                temp->assign_inst.op = OPERATOR_NONE;
+                auto it1 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+                if(it1 != indexArray.end())
                 {
-                    temp->assign_inst.op = OPERATOR_NONE;
-                    auto it1 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
-                    if(it1 != indexArray.end())
+                    temp->assign_inst.operand1_index = it1 - indexArray.begin();
+                    if(checkFirstInstruction == 0)
                     {
-                        temp->assign_inst.operand1_index = it1 - indexArray.begin();
-                        instruction->next = temp;
-                        instruction = instruction->next;
-                        count = count + 2;
+                        checkFirstInstruction++;
+                        instruction = temp;
                     }
+                    else
+                    {
+                        struct InstructionNode *  temp1 = instruction;
+                        while(temp1->next != NULL)
+                        {
+                            temp1 = temp1->next;
+                        }
+                        temp1->next = temp;
+                    }
+                    count = count + 2;
                 }
-                else
+            }
+            else
+            {
+                auto it2 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+                if(it2 != indexArray.end())
                 {
-                    auto it3 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
-                    if(it3 != indexArray.end())
+                    temp->assign_inst.operand1_index = it2-indexArray.begin();
+                    count++;
+                }
+                token = lexer.peek(count);
+                if(token.token_type == PLUS)
+                {
+                    temp->assign_inst.op = OPERATOR_PLUS;
+                    count++;
+                }
+                else if(token.token_type == MINUS)
+                {
+                    temp->assign_inst.op = OPERATOR_MINUS;
+                    count++;
+                }
+                else if(token.token_type == MULT)
+                {
+                    temp->assign_inst.op = OPERATOR_MULT;
+                    count++;
+                }
+                else if(token.token_type == DIV)
+                {
+                    temp->assign_inst.op = OPERATOR_DIV;
+                    count++;
+                }
+                token = lexer.peek(count);
+                auto it3 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+                if(it3 != indexArray.end())
+                {
+                    temp->assign_inst.operand2_index = it3-indexArray.begin();
+                    if(checkFirstInstruction == 0)
                     {
-                        temp->assign_inst.operand1_index = it3-indexArray.end();
-                        count++;
+                        checkFirstInstruction++;
+                        instruction = temp;
                     }
-                    if(lexer.peek(count).token_type == OPERATOR_PLUS)
+                    else
                     {
-                        temp->assign_inst.op = OPERATOR_PLUS;
-                        count++;
+                        struct InstructionNode *  temp1 = instruction;
+                        while(temp1->next != NULL)
+                        {
+                            temp1 = temp1->next;
+                        }
+                        temp1->next = temp;
                     }
-                    else if(lexer.peek(count).token_type == OPERATOR_MINUS)
-                    {
-                        temp->assign_inst.op = OPERATOR_MINUS;
-                        count++;
-                    }
-                    else if(lexer.peek(count).token_type == OPERATOR_MULT)
-                    {
-                        temp->assign_inst.op = OPERATOR_MULT;
-                        count++;
-                    }
-                    else if(lexer.peek(count).token_type == OPERATOR_DIV)
-                    {
-                        temp->assign_inst.op = OPERATOR_DIV;
-                        count++;
-                    }
-                    token = lexer.peek(count);
-                    auto it2 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
-                    if(it2 != indexArray.end())
-                    {
-                        temp->assign_inst.operand2_index = it2-indexArray.begin();
-                        instruction->next = temp;
-                        instruction = instruction->next;
-                        count += 2;
-                    }
+                    count = count + 2;
                 }
             }
         }
@@ -235,5 +267,5 @@ struct InstructionNode * parse_generate_intermediate_representation()
 
         }
     }
-    return head;
+    return instruction;
 }
