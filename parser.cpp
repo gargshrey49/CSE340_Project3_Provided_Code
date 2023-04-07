@@ -6,7 +6,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <ctype.h>
-#include <string.h>
+#include <string>
 #include <vector>
 #include "compiler.h"
 #include "lexer.h"
