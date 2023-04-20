@@ -22,11 +22,11 @@ struct InstructionNode * parse_generate_intermediate_representation()
     //     input b;
     //     c = 10;
     // 
-    //     IF c <> a
+    //     IF c <> a //noop
     //     {
     //         output b;
     //     }
-    // 
+    //
     //     IF c > 1
     //     {
     //         a = b + 900;

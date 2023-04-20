@@ -23,6 +23,7 @@ bool checkToken(vector<string>, string);
 
 struct InstructionNode * parse_generate_intermediate_representation()
 {
+    int cN = -1;
     vector<string> indexArray;
     int count = 0;
     bool firstBrace = false;
@@ -68,6 +69,7 @@ struct InstructionNode * parse_generate_intermediate_representation()
         }
         else if(token.token_type == RBRACE)
         {
+            cN++;
             end.pop();
         }
 
@@ -102,11 +104,16 @@ struct InstructionNode * parse_generate_intermediate_representation()
         }
     }
     struct InstructionNode *  instruction = new InstructionNode;
+
     int checkFirstInstruction = 0;
+    InstructionNode * noopArr[cN+1];
+    int cNA = 0;
     while(!end.empty())
     {
+
         Token token = lexer.peek(count);
         struct InstructionNode *  temp = new InstructionNode;
+        temp->next = NULL;
         if(token.token_type == INPUT)
         {
             temp->type = IN;
@@ -238,19 +245,96 @@ struct InstructionNode * parse_generate_intermediate_representation()
         }
         else if(token.token_type == IF)
         {
-
+            temp->type = CJMP;// if c <> a
+            token = lexer.peek(++count);
+            auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+            if(it != indexArray.end())
+            {
+                temp->cjmp_inst.operand1_index = it-indexArray.begin();
+            }
+            token = lexer.peek(++count);
+            if(token.token_type == NOTEQUAL)
+            {
+                temp->cjmp_inst.condition_op = CONDITION_NOTEQUAL;
+            }
+            else if(token.token_type == GREATER)
+            {
+                temp->cjmp_inst.condition_op = CONDITION_GREATER;
+            }
+            else if(token.token_type == LESS)
+            {
+                temp->cjmp_inst.condition_op = CONDITION_LESS;
+            }
+            token = lexer.peek(++count);
+            auto it1 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+            if(it1 != indexArray.end())
+            {
+                temp->cjmp_inst.operand2_index = it1-indexArray.begin();
+            }
+            struct InstructionNode * noop = new InstructionNode;
+            noop->type = NOOP;
+            noop->next = NULL;
+            noopArr[cNA++] = noop;
+            temp->cjmp_inst.target = noop;
+            if(checkFirstInstruction == 0)
+            {
+                checkFirstInstruction++;
+                instruction = temp;
+            }
+            else
+            {
+                struct InstructionNode *  temp1 = instruction;
+                while(temp1->next != NULL)
+                {
+                    temp1 = temp1->next;
+                }
+                temp1->next = temp;
+            }
+            // if not (c <> a) skip forward to NOOP
+            count = count + 1;
         }
         else if(token.token_type == WHILE)
         {
-
+            temp->type = CJMP;
+            token = lexer.peek(++count);
+            auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+            if(it != indexArray.end())
+            {
+                temp->cjmp_inst.operand1_index = it-indexArray.begin();
+            }
+            token = lexer.peek(++count);
+            if(token.token_type == NOTEQUAL)
+            {
+                temp->cjmp_inst.condition_op = CONDITION_NOTEQUAL;
+            }
+            else if(token.token_type == GREATER)
+            {
+                temp->cjmp_inst.condition_op = CONDITION_GREATER;
+            }
+            else if(token.token_type == LESS)
+            {
+                temp->cjmp_inst.condition_op = CONDITION_LESS;
+            }
+            token = lexer.peek(++count);
+            auto it1 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
+            if(it1 != indexArray.end())
+            {
+                temp->cjmp_inst.operand2_index = it1-indexArray.begin();
+            }
+            struct InstructionNode * noop = new InstructionNode;
+            noop->type = NOOP;
+            noop->next = NULL;
+            noopArr[cNA++] = noop;
+            temp->cjmp_inst.target = noop;
+            count++;
         }
         else if(token.token_type == FOR)
         {
-
+            count++;
         }
         else if(token.token_type == SWITCH)
         {
-
+            count++;
         }
         else if(token.token_type == LBRACE)
         {
@@ -260,6 +344,15 @@ struct InstructionNode * parse_generate_intermediate_representation()
         else if(token.token_type == RBRACE)
         {
             end.pop();
+            if(!end.empty())
+            {
+                struct InstructionNode *  temp1 = instruction;
+                while(temp1->next != NULL)
+                {
+                    temp1 = temp1->next;
+                }
+                temp1->next = noopArr[--cNA];
+            }
             count++;
         }
         else
