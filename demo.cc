@@ -38,7 +38,7 @@ struct InstructionNode * parse_generate_intermediate_representation()
     //     }
     // 
     //     d = 0;
-    //     WHILE d < 4
+    //     WHILE d < 4 //noop and store current node
     //     {
     //         c = a + d;
     //         IF d > 1
@@ -46,7 +46,7 @@ struct InstructionNode * parse_generate_intermediate_representation()
     //             output d;
     //         }
     //         d = d + 1;
-    //     }
+    //     }//jmp
     // }
     // 1 2 3 4 5 6
 

@@ -1,6 +1,3 @@
-//
-// Created by Shrey Garg and Sai Deeduvanu on 4/4/23.
-//
 #include <cstdlib>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,8 +15,6 @@ using namespace std;
 
 LexicalAnalyzer lexer;
 Token firstT;
-
-bool checkToken(vector<string>, string);
 
 struct InstructionNode * parse_generate_intermediate_representation()
 {
@@ -51,7 +46,7 @@ struct InstructionNode * parse_generate_intermediate_representation()
                 next_available++;
             }
         }
-        //else if add a constant value to mem
+            //else if add a constant value to mem
         else if(token.token_type == NUM)
         {
             auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
@@ -110,7 +105,6 @@ struct InstructionNode * parse_generate_intermediate_representation()
     int cNA = 0;
     while(!end.empty())
     {
-
         Token token = lexer.peek(count);
         struct InstructionNode *  temp = new InstructionNode;
         temp->next = NULL;
@@ -163,11 +157,11 @@ struct InstructionNode * parse_generate_intermediate_representation()
             auto it0 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
             if(it0 != indexArray.end())
             {
-                temp->assign_inst.left_hand_side_index = it0 - indexArray.begin();// c = 10
+                temp->assign_inst.left_hand_side_index = it0 - indexArray.begin();
                 count = count + 2;
             }
             token = lexer.peek(count);
-            if(token.token_type == NUM)
+            if((token.token_type == NUM || token.token_type == ID) && (lexer.peek(count+1).token_type == SEMICOLON))
             {
                 temp->assign_inst.op = OPERATOR_NONE;
                 auto it1 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
@@ -224,23 +218,23 @@ struct InstructionNode * parse_generate_intermediate_representation()
                 auto it3 = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
                 if(it3 != indexArray.end())
                 {
-                    temp->assign_inst.operand2_index = it3-indexArray.begin();
-                    if(checkFirstInstruction == 0)
-                    {
-                        checkFirstInstruction++;
-                        instruction = temp;
-                    }
-                    else
-                    {
-                        struct InstructionNode *  temp1 = instruction;
-                        while(temp1->next != NULL)
-                        {
-                            temp1 = temp1->next;
-                        }
-                        temp1->next = temp;
-                    }
-                    count = count + 2;
+                    temp->assign_inst.operand2_index = it3 - indexArray.begin();
                 }
+                if(checkFirstInstruction == 0)
+                {
+                    checkFirstInstruction++;
+                    instruction = temp;
+                }
+                else
+                {
+                    struct InstructionNode *  temp1 = instruction;
+                    while(temp1->next != NULL)
+                    {
+                        temp1 = temp1->next;
+                    }
+                    temp1->next = temp;
+                }
+                count = count + 2;
             }
         }
         else if(token.token_type == IF)
@@ -296,13 +290,15 @@ struct InstructionNode * parse_generate_intermediate_representation()
         else if(token.token_type == WHILE)
         {
             temp->type = CJMP;
-            token = lexer.peek(++count);
+            count++;
+            token = lexer.peek(count);
             auto it = std::find(indexArray.begin(), indexArray.end(), token.lexeme);
             if(it != indexArray.end())
             {
                 temp->cjmp_inst.operand1_index = it-indexArray.begin();
             }
-            token = lexer.peek(++count);
+            count++;
+            token = lexer.peek(count);
             if(token.token_type == NOTEQUAL)
             {
                 temp->cjmp_inst.condition_op = CONDITION_NOTEQUAL;
@@ -324,8 +320,26 @@ struct InstructionNode * parse_generate_intermediate_representation()
             struct InstructionNode * noop = new InstructionNode;
             noop->type = NOOP;
             noop->next = NULL;
-            noopArr[cNA++] = noop;
+            struct InstructionNode * jump = new InstructionNode;
+            jump->type = JMP;
+            jump->jmp_inst.target = temp;
+            jump->next = noop;
+            noopArr[cNA++] = jump;
             temp->cjmp_inst.target = noop;
+            if(checkFirstInstruction == 0)
+            {
+                checkFirstInstruction++;
+                instruction = temp;
+            }
+            else
+            {
+                struct InstructionNode *  temp1 = instruction;
+                while(temp1->next != NULL)
+                {
+                    temp1 = temp1->next;
+                }
+                temp1->next = temp;
+            }
             count++;
         }
         else if(token.token_type == FOR)
